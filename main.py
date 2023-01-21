@@ -85,7 +85,7 @@ def load_peoples(link):
 
     for col in df_peoples.columns:
         lst_cols.append(str(col).replace('.', '_'))
-    sql, values = bulk_state_insert_rows(schema='season_22_23', table='people', rows=df_peoples.values, target_fields=lst_cols)
+    insert_rows(schema='season_22_23', table='people', rows=df_peoples.values, target_fields=lst_cols)
 
 def load_standings():
     data = requests.get(url='https://statsapi.web.nhl.com/api/v1/standings').json()
