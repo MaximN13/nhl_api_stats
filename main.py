@@ -1,17 +1,16 @@
 import datetime as dt
 import os
 import time
-
-from time import sleep
+import json
+import collections
 import pandas as pd
 import requests
 import psycopg2
-from sql import *
 from sys import stdout
 from alive_progress import alive_bar
-import click
 
-import collections
+from sql import *
+from hh_api import *
 
 """
 [Shift+F11,F11] Bookmarks(Edit|Bookmarks|Show Line Bookmarks)
@@ -260,11 +259,11 @@ def load_regular_stats():
     #load_teams()           #one-time load
     load_roster_teams()  #reload TODO  #one-month load
 
-    #load_standings() #TODO fix comment
-    #load_schedule()
+    load_standings()
+    load_schedule()
 
-    #load_stats_people_season()  #load season '20222023'
-    #load_stats_goalie_season()  #load season '20222023'
+    load_stats_people_season()  #load season '20222023'
+    load_stats_goalie_season()  #load season '20222023'
 
 def f_testing():
     main_test() #testing
@@ -276,4 +275,5 @@ def f_testing():
 if __name__ == "__main__":
     #add logging TODO
     #create class load_regular_stats TODO (param season, type games: R, P)
-    load_regular_stats()
+    #load_regular_stats()
+    hh_api()
