@@ -2,7 +2,11 @@ import pandas as pd
 import requests
 import json
 import time
+import os
 
+CACHE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cache")
+__SETTINGS_PATH = "settings.json"
+__API_BASE_URL = "https://api.hh.ru/"
 
 def hh_api():
     js_objs = []
