@@ -21,9 +21,10 @@ def get_page(page=0):
     """page is index str, start 0"""
 
     params = {
-        'text': 'NAME:analytic',
+        'text': 'Python Developer',
         'area': 1,
         'page': page,
+       ## 'pages': 10,
         'per_page': 100
     }
 

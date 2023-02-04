@@ -10,7 +10,7 @@ from sys import stdout
 from alive_progress import alive_bar
 
 from sql import *
-from hh_api import *
+from hh_api.hh_api import *
 
 """
 [Shift+F11,F11] Bookmarks(Edit|Bookmarks|Show Line Bookmarks)
