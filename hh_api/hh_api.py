@@ -29,16 +29,6 @@ def hh_api():
     df_vacancies = pd.DataFrame(js_objs)
     df_vacancies = df_vacancies.drop_duplicates(subset="id")
     lst_cols = list(df_vacancies.columns).copy()
-    #generate_create_table_sql(schema="hh", table="vacancies", columns=lst_cols)
-    #length = len(df_vacancies)
-    #for i, row in df_vacancies.iterrows():
-    #    loading(i, length)
-    #    insert_rows(schema='season_22_23', table='stats_goalie_season', rows=df_splits.values, target_fields=lst_cols )
-#
-    #    loading(length, length)
-    #    print(f"insert into season_22_23.stats_goalie_season season: {url_season} finished")
-#
-    #for col in df_vacancies.columns:
 
     insert_rows(schema='headhunter', table='vacancies', rows=df_vacancies.values, target_fields=lst_cols)
 def get_page(page=0):
