@@ -4,11 +4,11 @@ from datetime import datetime
 import pandas as pd
 from decimal import Decimal
 
-
+#TODO Class Connect
 db_kwargs = {
-    "database":"nhl",
-    "user":"nhl_superuser",
-    "password":"nhl_superuser",
+    "database":"headhunter",
+    "user":"headhunter_su",
+    "password":"headhunter_su",
     "host":"localhost",
     "port":"5432"
 }
@@ -77,7 +77,11 @@ def _generate_insert_sql(schema, table, values, target_fields, **kwargs):
         target_fields = ''
 
     sql = "INSERT INTO "
-    sql += f"{schema}.{table} {target_fields} VALUES ({','.join(placeholders)}); commit;"
+    if kwargs['primary_col']:
+        sql += f"{schema}.{table} {target_fields} VALUES ({','.join(placeholders)}) on conflict({kwargs['primary_col']}) do nothing; commit;"
+    else:
+        sql += f"{schema}.{table} {target_fields} VALUES ({','.join(placeholders)}); commit;"
+
     return sql
 
 def insert_rows(schema, table, rows, target_fields, appnd_lst:list=None):
@@ -90,7 +94,9 @@ def insert_rows(schema, table, rows, target_fields, appnd_lst:list=None):
             for cell in row:
                 lst.append(_serialize_cell(cell))
             values = tuple(lst)
-            sql = _generate_insert_sql(schema, table, values, target_fields)
+            sql = _generate_insert_sql(schema, table, values, target_fields, primary_col="id")
+            print(f"values: {values}")
+            print("--------------")
             cur.execute(sql, values)
 
 def bulk_state_insert_rows(schema, table, rows, target_fields, appnd_lst:list=None):
@@ -114,6 +120,7 @@ def bulk_insert_rowsbulk_insert_rows(schema, table, rows, target_fields, appnd_l
         cur.execute(sql, values)
 
 def _serialize_cell(cell):
+    new_cell = {}
     if cell is None or cell == 'nan':
         return None
     if isinstance(cell, int):
@@ -127,9 +134,22 @@ def _serialize_cell(cell):
         return cell
     if isinstance(cell, datetime):
         return str(cell.isoformat())
+    if isinstance(cell, dict):
+        print(cell)
+        print("----")
+        for key, value in cell.items():
+            if isinstance(value, str) or isinstance(value, bool):
+                new_cell[key] = clear_value(str(value).replace("<highlighttext>", '').replace("</highlighttext>", '').replace("None", '0'))
+            else:
+                new_cell[key] = value
+        return str(new_cell).replace("'", '"').replace("None", '0')
     return str(cell).replace("'", '').replace("\\", '').replace("\"", '')
 
-def generate_create_table_sql(schema, table, columns):
+def clear_value(value:str):
+    value_list = value.maketrans("\"", "_")
+    return value.translate(value_list)
+
+def generate_create_table_sql(schema, table, columns:list):
 
     target_columns = []
     if columns:
