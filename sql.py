@@ -95,8 +95,8 @@ def insert_rows(schema, table, rows, target_fields, appnd_lst:list=None):
                 lst.append(_serialize_cell(cell))
             values = tuple(lst)
             sql = _generate_insert_sql(schema, table, values, target_fields, primary_col="id")
-            print(f"values: {values}")
-            print("--------------")
+            #print(f"values: {values}")
+            #print("--------------")
             cur.execute(sql, values)
 
 def bulk_state_insert_rows(schema, table, rows, target_fields, appnd_lst:list=None):
@@ -120,6 +120,8 @@ def bulk_insert_rowsbulk_insert_rows(schema, table, rows, target_fields, appnd_l
         cur.execute(sql, values)
 
 def _serialize_cell(cell):
+    #print(cell)
+    #print("----")
     new_cell = {}
     if cell is None or cell == 'nan':
         return None
@@ -134,19 +136,21 @@ def _serialize_cell(cell):
         return cell
     if isinstance(cell, datetime):
         return str(cell.isoformat())
+    if isinstance(cell, list):
+        if len(cell) != 0:
+            return str(cell[0]).replace("'", '"')
+        return ""
     if isinstance(cell, dict):
-        print(cell)
-        print("----")
         for key, value in cell.items():
             if isinstance(value, str) or isinstance(value, bool):
-                new_cell[key] = clear_value(str(value).replace("<highlighttext>", '').replace("</highlighttext>", '').replace("None", '0'))
+                new_cell[key] = clear_value(str(value).replace("<highlighttext>", '').replace("</highlighttext>", '').replace("None", '0')).replace('\xad', '')
             else:
                 new_cell[key] = value
         return str(new_cell).replace("'", '"').replace("None", '0')
-    return str(cell).replace("'", '').replace("\\", '').replace("\"", '')
+    return str(cell).replace("'", '').replace("\\", '').replace("\"", '').replace("None", "")
 
 def clear_value(value:str):
-    value_list = value.maketrans("\"", "_")
+    value_list = value.maketrans("\"\'", "__")
     return value.translate(value_list)
 
 def generate_create_table_sql(schema, table, columns:list):
