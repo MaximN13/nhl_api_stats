@@ -47,7 +47,7 @@ def load_files_vacancies_json():
         time.sleep(0.5)
 
     with open('file1.json', 'w') as f:
-        json.dump(js_objs, f)
+        json.dump(js_objs, f, ensure_ascii=False)
 
 def ins_to_db():
     with open('file1.json', 'r') as f:
@@ -72,7 +72,10 @@ def get_page(page=0):
         'per_page': 20
     }
 
-    req = requests.get(__API_BASE_URL + '/vacancies', params)
+    try:
+        req = requests.get(__API_BASE_URL + '/vacancies', params)
+    except:
+        print("requests error")
     data = req.content.decode()
     req.close()
     return data
