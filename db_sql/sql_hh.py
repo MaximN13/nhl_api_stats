@@ -2,18 +2,19 @@ from contextlib import closing
 from datetime import datetime
 import pandas as pd
 
-from db_sql.sql import Sql
+from db_sql.sql import DbSql
 
-class Sql_hh(Sql):
-    def __int__(self, host, user, password, db, port="5432"):
-        super(Sql_hh, self).__int__(host=host,
+class DbSql_hh(DbSql):
+    def __init__(self, host, user, password, db, port="5432"):
+        super(DbSql_hh, self).__init__(host=host,
                                     user=user,
                                     password=password,
                                     db=db,
                                     port=port)
 
     def insert_rows(self, schema, table, rows, target_fields, appnd_lst: list = None):
-        with closing(self.cursor) as cur:
+        con, cursor = super.__connect_db()
+        with closing(cursor) as cur:
             for row in rows:
                 lst = []
                 if appnd_lst:
@@ -26,9 +27,9 @@ class Sql_hh(Sql):
                 # print("--------------")
                 cur.execute(sql, values)
 
-    def _generate_insert_sql(schema, table, values, target_fields, **kwargs):
+    def _generate_insert_sql(self, schema, table, values, target_fields, **kwargs):
         placeholders = [
-                           "%s",
+                        "%s",
                        ] * len(values)
 
         if target_fields:
@@ -59,12 +60,6 @@ class Sql_hh(Sql):
 
         return sql_statement, all_value
 
-    def bulk_insert_rowsbulk_insert_rows(self, schema, table, rows, target_fields, appnd_lst: list = None):
-        sql, values = self._bulk_state_insert_rows
-
-        with closing(self.cursor()) as cur:
-            cur.execute(sql, values)
-
     def _serialize_cell(self, cell):
         # print(cell)
         # print("----")
@@ -90,9 +85,7 @@ class Sql_hh(Sql):
             for key, value in cell.items():
                 if isinstance(value, str) or isinstance(value, bool):
                     new_cell[key] = self._clear_value(
-                        str(value).replace("<highlighttext>", '').replace("</highlighttext>", '').replace("None",
-                                                                                                          '0')).replace(
-                        '\xad', '')
+                        str(value).replace("<highlighttext>", '').replace("</highlighttext>", '').replace("None",'0')).replace('\xad', '')
                 else:
                     new_cell[key] = value
             return str(new_cell).replace("'", '"').replace("None", '0')

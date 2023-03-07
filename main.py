@@ -286,5 +286,6 @@ def f_testing():
 if __name__ == "__main__":
     #add logging TODO
     #create class load_regular_stats TODO (param season, type games: R, P)
-    load_regular_stats()
-    #hh_api()
+    #load_regular_stats()
+    main_hh_api()
+    #TODO time

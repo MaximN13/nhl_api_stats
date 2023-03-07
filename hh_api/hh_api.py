@@ -2,7 +2,7 @@ import requests
 import json
 import time
 import os
-from db_sql.sql import *
+from db_sql.sql_hh import *
 from alive_progress import alive_bar
 from typing import Dict
 
@@ -16,10 +16,10 @@ def loading(i, len:int):
             time.sleep(.005)
             bar()
 
-def hh_api():
+def main_hh_api():
     load_files_vacancies_json()
     ins_to_db()
-    pass
+
 
 def config():
     config_path = "./hh_api/settings.json"
@@ -35,7 +35,7 @@ def config():
 def load_files_vacancies_json():
     js_objs = []
 
-    for page in range(0, 20):
+    for page in range(0, 1):
         js_obj = json.loads(get_page(page))
         if "items" not in js_obj:
             break
@@ -49,6 +49,7 @@ def load_files_vacancies_json():
         json.dump(js_objs, f, ensure_ascii=False)
 
 def ins_to_db():
+    dbsql_hh = DbSql_hh("localhost", "headhunter_su", "headhunter_su", "headhunter")
     with open('file1.json', 'r') as f:
         js_objs = json.load(f)
 
@@ -56,7 +57,7 @@ def ins_to_db():
     df_vacancies = df_vacancies.drop_duplicates(subset="id")
 
     lst_cols = list(df_vacancies.columns).copy()
-    insert_rows(schema='headhunter', table='vacancies', rows=df_vacancies.values, target_fields=lst_cols)
+    dbsql_hh.insert_rows(schema='headhunter', table='vacancies', rows=df_vacancies.values, target_fields=lst_cols)
 
 def get_page(page=0):
     """page is index str, start 0"""
