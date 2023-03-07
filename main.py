@@ -1,17 +1,9 @@
 import datetime as dt
-import os
-import time
-import json
 import collections
-import pandas as pd
-import requests
-import psycopg2
-from sys import stdout
-from alive_progress import alive_bar
 
 from hh_api.hh_api import *
-from sql.sql import Sql
-from sql.sql_hh import Sql_hh
+from db_sql.sql import *
+
 """
 [Shift+F11,F11] Bookmarks(Edit|Bookmarks|Show Line Bookmarks)
 """
@@ -23,10 +15,11 @@ def loading(i, len:int):
             bar()
 
 def load_teams():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
     data = requests.get(url='https://statsapi.web.nhl.com/api/v1/teams/').json()
     df_data = pd.json_normalize(data['teams'])
     sql_truncate = "truncate table season_22_23.teams; commit;"
-    db_execute(sql_truncate)
+    db_sql.query(sql_truncate)
     sql = ""
     for index, row in df_data.iterrows():
 
@@ -34,16 +27,18 @@ def load_teams():
               f"values({row['id']},'{row['name']}','{row['teamName']}','{row['shortName']}','{row['firstYearOfPlay']}',{row['division.id']},'{row['division.name']}','{row['division.nameShort']}', " \
               f"{row['conference.id']} , '{row['conference.name']}'); commit; "
 
-        db_execute(sql)
+        db_sql.query(sql)
         sql = ""
     print(f"sql: {sql}")
 
-def load_roster_teams(db_sql:Sql):
+def load_roster_teams():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
+
     sql_truncate = "truncate table season_22_23.team_roster; commit;"
-    db_sql.query(sql_truncate)
+    db_sql.sql_execute(sql_truncate)
 
     sql_truncate = "truncate table season_22_23.people; commit;"
-    db_sql.query(sql_truncate)
+    db_sql.sql_execute(sql_truncate)
 
     sql_teams = f"select id_team from season_22_23.teams"
     df_id_teams = db_sql.get_pandas_df(sql=sql_teams)
@@ -59,40 +54,49 @@ def load_roster_teams(db_sql:Sql):
         for i in range(0, end_df_roster):
             for row in df_roster[i].values:
                 person_fullName = str(row['person.fullName']).replace("'", '')
-                sql += f"insert into season_22_23.team_roster" \
-                       f"(jerseyNumber,person_id,person_fullName,person_link,position_code,position_name,position_type,position_abbreviation)" \
-                       f"values({row['jerseyNumber']}, {row['person.id']}, '{person_fullName}', '{row['person.link']}', '{row['position.code']}', '{row['position.name']}', " \
-                       f"'{row['position.type']}', '{row['position.abbreviation']}');" \
-                       f" commit; "
-        sql.query(sql)
+                try:
+                    sql += f"insert into season_22_23.team_roster" \
+                           f"(jerseyNumber,person_id,person_fullName,person_link,position_code,position_name,position_type,position_abbreviation)" \
+                           f"values({row['jerseyNumber']}, {row['person.id']}, '{person_fullName}', '{row['person.link']}', '{row['position.code']}', '{row['position.name']}', " \
+                           f"'{row['position.type']}', '{row['position.abbreviation']}');" \
+                           f" commit; "
+                except KeyError as e:
+                    print(f"error: {e}")
+                    print(row['person.fullName'])
+        db_sql.sql_execute(sql)
     print(f"insert into season_22_23.team_roster success")
+
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
 
     sql_person_links = f"select person_link from season_22_23.team_roster"
     df_person_links = db_sql.get_pandas_df(sql=sql_person_links)
     length = len(df_person_links)
-    for i, person_link in df_person_links.iterrows():
+    for i, person_link in df_person_links.iterrows(): #TODO optimize NMP-2, NMP-8
         loading(i, length)
-        load_peoples(str(person_link[0]).strip(), db_sql)
+        load_peoples(str(person_link[0]).strip())
     print(f"insert into season_22_23.people success")
 
-def load_peoples(link, db_sql:Sql):
+def load_peoples(link):
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
 
     url = f"https://statsapi.web.nhl.com" + link
     data = requests.get(url=url).json()
-    df_peoples = pd.json_normalize(data['people']) #TODO common insert file from api
+    df_peoples = pd.json_normalize(data['people']) #TODO common insert file from api optimize NMP-2, NMP-8
     lst_cols = []
 
     for col in df_peoples.columns:
         lst_cols.append(str(col).replace('.', '_'))
     db_sql.insert_rows(schema='season_22_23', table='people', rows=df_peoples.values, target_fields=lst_cols)
 
-def load_standings(db_sql:Sql):
+def load_standings():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
+
     data = requests.get(url='https://statsapi.web.nhl.com/api/v1/standings').json()
     df_records = pd.json_normalize(data['records'])
     df_teamRecords = pd.json_normalize(df_records['teamRecords'])
 
     sql_truncate = "truncate table season_22_23.standings; commit;"
-    db_sql.query(sql_truncate)
+    db_sql.sql_execute(sql_truncate)
 
     sql = ""
     for i in range(0, 8):
@@ -108,11 +112,13 @@ def load_standings(db_sql:Sql):
        f"'{row['ppConferenceRank']}','{row['ppLeagueRank']}', '{row['lastUpdated']}');" \
        f" commit; "
 
-    db_sql.query(sql)
+    db_sql.sql_execute(sql)
     print(f"insert into season_22_23.standings success")
 
 #R-regular, P-playoff
-def load_schedule(db_sql:Sql):
+def load_schedule():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
+
     cur_date = dt.datetime.today()
     delta_date = cur_date + dt.timedelta(days=1)
     url = f'https://statsapi.web.nhl.com/api/v1/schedule?startDate={str(cur_date).split()[0]}&endDate={str(delta_date).split()[0]}'
@@ -121,7 +127,7 @@ def load_schedule(db_sql:Sql):
     end_dates = len(df_dates)
 
     sql_truncate = "truncate table season_22_23.schedule; commit;"
-    db_sql.query(sql_truncate)
+    db_sql.sql_execute(sql_truncate)
     sql = ""
     for item_date in range(0, end_dates):
         games = df_dates['games'][item_date].copy()
@@ -137,10 +143,12 @@ def load_schedule(db_sql:Sql):
                        f"(gamePk,link,gameType,season,gameDate,status,teams,venue,content)" \
                        f"values({gamePk},\'{games[i]['link']}\',\'{games[i]['gameType']}\',{games[i]['season']},\'{games[i]['gameDate']}\',\'{game_status}\',\'{game_teams}\',\'{game_venue}\',\'{game_content}\');"   \
                        f" commit; "
-    db_sql.query(sql)
+    db_sql.sql_execute(sql)
     print(f"insert into season_22_23.schedule success")
 
-def load_stats_people_season(db_sql:Sql):
+def load_stats_people_season():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
+
     #seasons = ['20162017','20172018','20182019', '20192020', '20202021', '20212022', '20222023']
     seasons = ['20222023']
     for url_season in seasons:
@@ -165,13 +173,15 @@ def load_stats_people_season(db_sql:Sql):
             appnd_lst = [int(id_people), str(fullname)]
 
             del_sql_stats_people_season = f"delete from season_22_23.stats_people_season where id_person = {int(id_people)} and fullname_person = '{str(fullname)}' and season = '{url_season}'; commit;"
-            db_sql.query(del_sql_stats_people_season)
+            db_sql.sql_execute(del_sql_stats_people_season)
 
             db_sql.insert_rows(schema='season_22_23', table='stats_people_season', rows=df_splits.values, target_fields=cols, appnd_lst=appnd_lst)
 
         print(f"insert into season_22_23.stats_people_season season: {url_season} finished")
 
-def load_stats_goalie_season(db_sql:Sql):
+def load_stats_goalie_season():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
+
     #seasons = ['20162017','20172018','20182019', '20192020', '20202021', '20212022', '20222023']
     seasons = ['20222023']
     for url_season in seasons:
@@ -198,7 +208,7 @@ def load_stats_goalie_season(db_sql:Sql):
             appnd_lst = [int(id_people), str(fullname)]
 
             del_sql_stats_people_season = f"delete from season_22_23.stats_goalie_season where id_person = {int(id_people)} and fullname_person = '{str(fullname)}' and season = '{url_season}'; commit;"
-            db_sql.query(del_sql_stats_people_season)
+            db_sql.sql_execute(del_sql_stats_people_season)
 
             db_sql.insert_rows(schema='season_22_23', table='stats_goalie_season', rows=df_splits.values, target_fields=cols, appnd_lst=appnd_lst)
 
@@ -255,23 +265,23 @@ def main_test():
     #print(result_list)
 
 def load_regular_stats():
-    db_sql = Sql(host="localhost", user="nhl_superuser", password="nhl_superuser", db="nhl")
     #TODO add column now() for rows in table
-    #load_teams()           #one-time load
-    load_roster_teams(db_sql=db_sql)  #reload TODO  #one-month load
+    #load_teams(db_sql=db_sql)           #one-time load
+    load_roster_teams()  #reload TODO  #one-month load
 
-    load_standings(db_sql=db_sql)
-    load_schedule(db_sql=db_sql)
+    load_standings()
+    load_schedule()
 
-    load_stats_people_season(db_sql=db_sql)  #load season '20222023'
-    load_stats_goalie_season(db_sql=db_sql)  #load season '20222023'
+    load_stats_people_season()  #load season '20222023'
+    load_stats_goalie_season()  #load season '20222023'
 
 def f_testing():
+    db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
     main_test() #testing
     load_game_boxscore() #testin
-    generate_create_table_sql(schema='season_22_23', table='temp', columns=['a', 'b', 'c'])
+    db_sql.generate_create_table_sql(schema='season_22_23', table='temp', columns=['a', 'b', 'c'])
     load_peoples('/api/v1/people/8475287')
-    insert_rows(schema='season_22_23', table='temp', rows = ["432",544,"2022-10-11"],target_fields=['a', 'b', 'c'])
+    db_sql.insert_rows(schema='season_22_23', table='temp', rows = ["432",544,"2022-10-11"],target_fields=['a', 'b', 'c'])
 
 if __name__ == "__main__":
     #add logging TODO

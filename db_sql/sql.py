@@ -4,16 +4,16 @@ from contextlib import closing
 from datetime import datetime
 import pandas as pd
 
-class Sql:
-    def __int__(self, host, user, password, db, port="5432"):
+class DbSql:
+    def __init__(self, host, user, password, db, port="5432"):
         self.host = host
         self.user = user
         self.password = password
         self.port = port
         self.db = db
-        conn_and_cursor = self.__connect_db()
-        self.connection = conn_and_cursor[0]
-        self.cursor = conn_and_cursor[1]
+        #conn_and_cursor = self.__connect_db()
+        #self.connection = conn_and_cursor[0]
+        #self.cursor = conn_and_cursor[1]
 
     def __connect_db(self):
         try:
@@ -26,9 +26,10 @@ class Sql:
         except (Exception, Error) as error:
             print(f"Error connection to host: {self.host}, db: {self.db}")
 
-    def query(self, sql=None, params=None):
+    def sql_select(self, sql=None, params=None):
+        con, cursor = self.__connect_db()
         try:
-            with closing(self.cursor) as cur:
+            with closing(cursor) as cur:
                 if sql:
                     cur.execute(sql, params)
                 else:
@@ -38,11 +39,24 @@ class Sql:
         except Exception as e:
             status = False
             message = str(e)
-            print(f"Status: {status}, message: {message}")
+            print(f"Status: {status}, !!!!!!!!!!!message: {message}!!!!!!!!!!!!")
 
         return result
 
+    def sql_execute(self, sql):
+        con, cursor = self.__connect_db()
+        try:
+            with closing(cursor) as cur:
+                cur.execute(sql)
+                # if cur.rowcount >= 0:
+                # print("Rows affected: %s:", cur.rowcount)
+                # list_obj = cur.fetchall()
+        except Exception as e:
+            message = str(e)
+            print(f"!!!!!!!!!!!message: {message}!!!!!!!!!!")
+
     def get_pandas_df(self, sql, params=None, **kwargs):
+        con, cursor = self.__connect_db()
         try:
             from pandas.io import sql as psql
         except ImportError:
@@ -50,10 +64,15 @@ class Sql:
                 "pandas library not installed, run: pip install"
                 "'apache-airflow-providers-common-sql[pandas]'."
             )
-        with closing(self.connection) as conn:
-            return psql.read_sql(sql, con=conn, params=params, **kwargs)
+        try:
+            with closing(cursor) as cur:
+                return psql.read_sql(sql, con=con, params=params, **kwargs)
+        except Exception as e:
+            message = str(e)
+            print(f"!!!!!!!!!!!message: {message}!!!!!!!!!!")
 
-    def _generate_insert_sql(schema, table, values, target_fields, **kwargs):
+
+    def _generate_insert_sql(self, schema, table, values, target_fields, **kwargs):
         placeholders = [
                            "%s",
                        ] * len(values)
@@ -65,15 +84,17 @@ class Sql:
             target_fields = ''
 
         sql = "INSERT INTO "
-        if kwargs['primary_col']:
-            sql += f"{schema}.{table} {target_fields} VALUES ({','.join(placeholders)}) on conflict({kwargs['primary_col']}) do nothing; commit;"
+        if kwargs:
+            if kwargs['primary_col']:
+                sql += f"{schema}.{table} {target_fields} VALUES ({','.join(placeholders)}) on conflict({kwargs['primary_col']}) do nothing; commit;"
         else:
             sql += f"{schema}.{table} {target_fields} VALUES ({','.join(placeholders)}); commit;"
 
         return sql
 
     def insert_rows(self, schema, table, rows, target_fields, appnd_lst: list = None):
-        with closing(self.cursor) as cur:
+        con, cursor = self.__connect_db()
+        with closing(cursor) as cur:
             for row in rows:
                 lst = []
                 if appnd_lst:
@@ -103,10 +124,10 @@ class Sql:
     def bulk_insert_rowsbulk_insert_rows(self, schema, table, rows, target_fields, appnd_lst: list = None):
         sql, values = self._bulk_state_insert_rows
 
-        with closing(self.cursor()) as cur:
+        with closing(self.cursor) as cur:
             cur.execute(sql, values)
 
-    def _serialize_cell(cell):
+    def _serialize_cell(self, cell):
         if cell is None or cell == 'nan':
             return None
         if isinstance(cell, int):

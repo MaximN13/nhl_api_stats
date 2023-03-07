@@ -1,9 +1,8 @@
-import pandas as pd
 import requests
 import json
 import time
 import os
-from sql import *
+from db_sql.sql import *
 from alive_progress import alive_bar
 from typing import Dict
 

@@ -1,10 +1,8 @@
-import psycopg2
-from psycopg2 import Error
 from contextlib import closing
 from datetime import datetime
 import pandas as pd
 
-from sql import Sql
+from db_sql.sql import Sql
 
 class Sql_hh(Sql):
     def __int__(self, host, user, password, db, port="5432"):
