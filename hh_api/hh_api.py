@@ -9,6 +9,7 @@ from typing import Dict
 CACHE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cache")
 __SETTINGS_PATH = "settings.json"
 __API_BASE_URL = "https://api.hh.ru"
+__APP_TOKEN = 'APPLNQ2DNUPEPOSBNI5UGMRMGNEHNUBFT1AIGAQHDOM6RMU9PNGS2OBEQCG6UKTR'
 
 def loading(i, len:int):
     with alive_bar(total=len) as bar:
@@ -19,7 +20,6 @@ def loading(i, len:int):
 def main_hh_api():
     load_files_vacancies_json()
     ins_to_db()
-
 
 def config():
     config_path = "./hh_api/settings.json"
@@ -61,7 +61,6 @@ def ins_to_db():
 
 def get_page(page=0):
     """page is index str, start 0"""
-
     #params = config()
     #print(params)
     params = {
@@ -80,3 +79,16 @@ def get_page(page=0):
     req.close()
     return data
 
+def get_oauth():
+    params = {
+        #'response_type': 'code',
+        'client_id': 'QTFQQVA7QKCJJ7MG6AKN0RN1EM0KPUGBDDIR69QVP2HL40HOG3QSKRK16KCAGS6P',
+        'client_secret': 'NFKPIA1L5AGV047DBQE88CJN8K1A4RN8LFISL1QEDF4E3UE9C8ELVJ1LA0DN4KG0',
+        'grant_type': 'client_credentials'
+        #'state':
+        #'redirect_uri': 'https://localhost'
+    }
+
+    url = 'https://hh.ru/oauth/token'
+    resp = requests.post(url=url, params=params)
+    print(f'response oauth: {resp.text}')

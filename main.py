@@ -19,7 +19,7 @@ def load_teams():
     data = requests.get(url='https://statsapi.web.nhl.com/api/v1/teams/').json()
     df_data = pd.json_normalize(data['teams'])
     sql_truncate = "truncate table season_22_23.teams; commit;"
-    db_sql.query(sql_truncate)
+    db_sql.sql_execute(sql_truncate)
     sql = ""
     for index, row in df_data.iterrows():
 
@@ -27,7 +27,7 @@ def load_teams():
               f"values({row['id']},'{row['name']}','{row['teamName']}','{row['shortName']}','{row['firstYearOfPlay']}',{row['division.id']},'{row['division.name']}','{row['division.nameShort']}', " \
               f"{row['conference.id']} , '{row['conference.name']}'); commit; "
 
-        db_sql.query(sql)
+        db_sql.sql_execute(sql)
         sql = ""
     print(f"sql: {sql}")
 
@@ -266,7 +266,7 @@ def main_test():
 
 def load_regular_stats():
     #TODO add column now() for rows in table
-    #load_teams(db_sql=db_sql)           #one-time load
+    load_teams()           #one-time load
     load_roster_teams()  #reload TODO  #one-month load
 
     load_standings()
@@ -278,14 +278,18 @@ def load_regular_stats():
 def f_testing():
     db_sql = DbSql("localhost", "nhl_superuser", "nhl_superuser", "nhl")
     main_test() #testing
-    load_game_boxscore() #testin
+    load_game_boxscore() #testing
     db_sql.generate_create_table_sql(schema='season_22_23', table='temp', columns=['a', 'b', 'c'])
     load_peoples('/api/v1/people/8475287')
-    db_sql.insert_rows(schema='season_22_23', table='temp', rows = ["432",544,"2022-10-11"],target_fields=['a', 'b', 'c'])
+    db_sql.insert_rows(schema='season_22_23', table='temp', rows = ["432",544,"2022-10-11"], target_fields=['a', 'b', 'c'])
 
 if __name__ == "__main__":
     #add logging TODO
     #create class load_regular_stats TODO (param season, type games: R, P)
+    """Load stats nhl"""
     #load_regular_stats()
-    main_hh_api()
+
+    """Load data from HeadHunter"""
+    #get_oauth()
+    #main_hh_api()
     #TODO time
