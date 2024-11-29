@@ -49,7 +49,7 @@ def load_files_vacancies_json():
         json.dump(js_objs, f, ensure_ascii=False)
 
 def ins_to_db():
-    dbsql_hh = DbSql_hh("localhost", "headhunter_su", "headhunter_su", "headhunter")
+    dbsql_hh = DbSql_hh(host="localhost", user="headhunter_su", password="headhunter_su", db="headhunter")
     with open('file1.json', 'r') as f:
         js_objs = json.load(f)
 
@@ -70,7 +70,6 @@ def get_page(page=0):
        ## 'pages': 10,
         'per_page': 20
     }
-
     try:
         req = requests.get(__API_BASE_URL + '/vacancies', params)
     except:

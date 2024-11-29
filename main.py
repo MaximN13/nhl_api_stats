@@ -38,7 +38,7 @@ def load_roster_teams():
     db_sql.sql_execute(sql_truncate)
 
     sql_truncate = "truncate table season_22_23.people; commit;"
-    db_sql.sql_execute(sql_truncate)
+    db_sql.sql_execute(sql_truncate) 
 
     sql_teams = f"select id_team from season_22_23.teams"
     df_id_teams = db_sql.get_pandas_df(sql=sql_teams)

@@ -92,7 +92,7 @@ class DbSql:
 
         return sql
 
-    def insert_rows(self, schema, table, rows, target_fields, appnd_lst: list = None):
+    def insert_rows(self, schema, table, rows, target_fields, appnd_lst:list=None):
         con, cursor = self.__connect_db()
         with closing(cursor) as cur:
             for row in rows:
@@ -107,7 +107,7 @@ class DbSql:
                 # print("--------------")
                 cur.execute(sql, values)
 
-    def _bulk_state_insert_rows(self, schema, table, rows, target_fields, appnd_lst: list = None):
+    def _bulk_state_insert_rows(self, schema, table, rows, target_fields, appnd_lst:list=None):
         all_value = []
         for row in rows:
             lst = []
